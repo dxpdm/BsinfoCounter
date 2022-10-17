@@ -21,18 +21,22 @@ Ticket_1-GUI Data_Input bearbeiter (Dio)
 * Mit showInputPopup ein neues Popup erstellt mit einem GridLayout
 * Es wurden im Popup neue JTextField erstellt und benannt
 * Es wurde ein Input hinzugefügt um Daten einlesen zu können
-* JOptionPane wurde erweitert um das Popup anzeigen zu lassen
+* JOptionPane wurde erweitert, um das Popup anzeigen zu lassen
 * Neue Records CustomerEntry wurde erstellt 
 * In dieser Records Klasse wurden die variablen Kunden, Haus, Wohnungsnummer(int),
 Zählerart(String), Ablesedatum(Date), Zählerwechsel(boolean) und Kommentar(String)
 mit variablen definiert
+* Dropdown Menü wird eingefügt beim Popup, es kam ein Fehler: Symbol wurde nicht erkannt.
+Dies wurde behoben da ein Zeichenfehler war
+* Wir haben einen Fehler mit dem PopUp bekommen: Cannot invoke because the return
+value of java.lang.Integer
 
 Webanwendung Joshua
 Prototyp wird erstellt
 
 Design (Emre)
 * Skizzen und Form von dem Frame erstellt
-* Nachher wurde das Popup menü skizziert
+* Nachher wurde das Pop-up-Menü skizziert
 * Dokumentation wurde angefangen
 
 
