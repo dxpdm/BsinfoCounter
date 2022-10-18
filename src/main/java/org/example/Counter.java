@@ -33,6 +33,7 @@ public class Counter extends JFrame {
         con.add(new JScrollPane(table), BorderLayout.CENTER);
 
         table.setGridColor(Color.LIGHT_GRAY);
+        table.setEnabled(false);
 
         final var sideButtons = new JPanel();
         sideButtons.setLayout(new BoxLayout(sideButtons, BoxLayout.Y_AXIS));
