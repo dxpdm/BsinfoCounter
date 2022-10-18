@@ -75,19 +75,17 @@ public class Counter extends JFrame {
     }
 
     private void exportList(ArrayList<CustomerEntry> tab) {
-        tab.forEach(row -> {
-            writeCSV(row.customerNm(), row.houseNm(), row.apartmentNm(), row.counterState(), row.counterType(), row.counterNum(), row.date(), row.counterSwitch(), row.comment());
-        });
-    }
-
-    private static void writeCSV(Integer customerNm, Integer houseNm, Integer apartmentNm, Integer counterState, String counterType, Integer counterNum, LocalDate date, Boolean counterSwitch, String comment) {
         File file = new File("export.csv");
+
         try {
             CSVWriter writer = new CSVWriter(new FileWriter(file));
             String[] header = { "customerNm", "houseNm", "apartmentNm", "counterState", "counterType", "counterNum", "date" , "counterSwitch", "comment" };
             writer.writeNext(header);
-            String[] dataRow = { customerNm.toString(), houseNm.toString(), apartmentNm.toString(), counterState.toString(), counterType, counterNum.toString(), date.toString(), counterSwitch.toString(), comment };
-            writer.writeNext(dataRow);
+            tab.forEach(row -> {
+                for (String s : new String[] { String.valueOf(row.customerNm()), String.valueOf(row.houseNm()), String.valueOf(row.apartmentNm()), String.valueOf(row.counterState()), row.counterType(), String.valueOf(row.counterNum()), String.valueOf(row.date()), String.valueOf(row.counterSwitch()), row.comment() }) {
+                    writer.writeNext(new String[]{s});
+                }
+            });
             writer.close();
         }
         catch (IOException e) {
