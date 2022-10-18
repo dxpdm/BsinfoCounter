@@ -4,9 +4,32 @@ import javax.swing.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public record CustomerEntry(int customerNm, int houseNm, int apartmentNm, int counterState,
-                            String counterType, int counterNum, LocalDate date, boolean counterSwitch, String comment) {
+/*public record CustomerEntry(int customerNm, int houseNm, int apartmentNm, int counterState,
+                            String counterType, int counterNum, String date, boolean counterSwitch, String comment) */
+public class CustomerEntry{
+    int customerNm;
+    int houseNm;
+    int apartmentNm;
+    int counterState;
+    String counterType;
+    int counterNum;
+    LocalDate date;
+    boolean counterSwitch;
+    String comment;
+
     static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+    public CustomerEntry(int customerNm, int houseNm, int apartmentNm, int counterState, String counterType, int counterNum, LocalDate date, boolean counterSwitch, String comment) {
+        this.customerNm = customerNm;
+        this.houseNm = houseNm;
+        this.apartmentNm = apartmentNm;
+        this.counterState = counterState;
+        this.counterType = counterType;
+        this.counterNum = counterNum;
+        this.date = date;
+        this.counterSwitch = counterSwitch;
+        this.comment = comment;
+    }
 
     static public CustomerEntry of(JTextField arg1, JTextField arg2, JTextField arg3, JTextField arg4, String arg5,
                                    JTextField arg6, JTextField arg7, JComboBox<String> arg8, JTextField arg9) {

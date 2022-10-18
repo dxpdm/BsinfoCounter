@@ -1,15 +1,39 @@
 package org.example;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.lang.reflect.Type;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Optional;
+
+class LocalDateSerializer implements JsonSerializer< LocalDate > {
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+    @Override
+    public JsonElement serialize(LocalDate localDate, Type srcType, JsonSerializationContext context) {
+        return new JsonPrimitive(formatter.format(localDate));
+    }
+}
+
+class LocalDateDeserializer implements JsonDeserializer < LocalDate > {
+    @Override
+    public LocalDate deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+            throws JsonParseException {
+        return LocalDate.parse(json.getAsString(),
+                DateTimeFormatter.ofPattern("dd.MM.yyyy").withLocale(Locale.GERMAN));
+    }
+}
 
 public class Counter extends JFrame {
     private static final String[] columnNames = new String[]{
@@ -25,12 +49,16 @@ public class Counter extends JFrame {
     };
     private static final String savedDataPath = "res/savedData.json";
     final JTable table = new JTable(new DefaultTableModel(new String[][]{}, columnNames));
-    final ArrayList<CustomerEntry> data = new ArrayList<>();
+    ArrayList<CustomerEntry> data = new ArrayList<>();
 
     public Counter() {
         super("Zähler");
         load();
         init();
+    }
+
+    public static void main(String[] args) {
+        new Counter();
     }
 
     private void init() {
@@ -72,8 +100,13 @@ public class Counter extends JFrame {
         }
     }
 
+    private void addElement(CustomerEntry entry) {
+        data.add(entry);
+        addRow(entry, table);
+    }
+
     private void addRow(CustomerEntry entry, JTable t) {
-        ((DefaultTableModel)t.getModel()).addRow(new Object[]{ entry.customerNm(), entry.houseNm(), entry.apartmentNm(), entry.counterState(), entry.counterType(), entry.counterNum(), entry.date(), entry.counterSwitch(), entry.comment() });
+        ((DefaultTableModel) t.getModel()).addRow(new Object[]{entry.customerNm, entry.houseNm, entry.apartmentNm, entry.counterState, entry.counterType, entry.counterNum, entry.date, entry.counterSwitch, entry.comment});
     }
 
     private Optional<CustomerEntry> showInputPopup() {
@@ -120,6 +153,23 @@ public class Counter extends JFrame {
     }
 
     private void load() {
+        Gson gson = new GsonBuilder()
+                .setPrettyPrinting()
+                .registerTypeAdapter(LocalDate.class, new LocalDateDeserializer())
+                .setDateFormat("dd.MM.yyyy")
+                .create();
+
+        try (Reader reader = new FileReader(savedDataPath)) {
+            var type = new TypeToken<ArrayList<CustomerEntry>>(){}.getType();
+
+            data = gson.fromJson(reader, type);
+
+            for (var d : data)
+                addRow(d, table);
+
+        } catch (IOException e) {
+            System.out.println("Couldn't load file at location");
+        }
 
     }
 
@@ -128,6 +178,8 @@ public class Counter extends JFrame {
             var writer = new FileWriter(savedDataPath);
             Gson gson = new GsonBuilder()
                     .setPrettyPrinting()
+                    .setDateFormat("dd.MM.yyyy")
+                    .registerTypeAdapter(LocalDate.class, new LocalDateSerializer())
                     .create();
 
             gson.toJson(data, writer);
@@ -141,9 +193,5 @@ public class Counter extends JFrame {
     private void exit() {
         save();
         System.exit(0);
-    }
-
-    public static void main(String[] args) {
-        new Counter();
     }
 }
