@@ -3,8 +3,13 @@ package org.example;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Optional;
+import com.opencsv.CSVWriter;
 
 public class Counter extends JFrame {
     private static final String[] columnNames = new String[]{
@@ -43,6 +48,7 @@ public class Counter extends JFrame {
         addButton.addActionListener(e -> addElement(showInputPopup()));
         final var exportButton = new Button("export");
         exportButton.setMaximumSize(new Dimension(100, 50));
+        exportButton.addActionListener(e -> exportList(data));
         final var exitButton = new Button("exit");
         exitButton.setMaximumSize(new Dimension(100, 50));
 
@@ -66,6 +72,27 @@ public class Counter extends JFrame {
 
     private void addRow(CustomerEntry entry, JTable t) {
         ((DefaultTableModel)t.getModel()).addRow(new Object[]{ entry.customerNm(), entry.houseNm(), entry.apartmentNm(), entry.counterState(), entry.counterType(), entry.counterNum(), entry.date(), entry.counterSwitch(), entry.comment() });
+    }
+
+    private void exportList(ArrayList<CustomerEntry> tab) {
+        tab.forEach(row -> {
+            writeCSV(row.customerNm(), row.houseNm(), row.apartmentNm(), row.counterState(), row.counterType(), row.counterNum(), row.date(), row.counterSwitch(), row.comment());
+        });
+    }
+
+    private static void writeCSV(Integer customerNm, Integer houseNm, Integer apartmentNm, Integer counterState, String counterType, Integer counterNum, LocalDate date, Boolean counterSwitch, String comment) {
+        File file = new File("export.csv");
+        try {
+            CSVWriter writer = new CSVWriter(new FileWriter(file));
+            String[] header = { "customerNm", "houseNm", "apartmentNm", "counterState", "counterType", "counterNum", "date" , "counterSwitch", "comment" };
+            writer.writeNext(header);
+            String[] dataRow = { customerNm.toString(), houseNm.toString(), apartmentNm.toString(), counterState.toString(), counterType, counterNum.toString(), date.toString(), counterSwitch.toString(), comment };
+            writer.writeNext(dataRow);
+            writer.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private Optional<CustomerEntry> showInputPopup() {
