@@ -1,8 +1,13 @@
 package org.example;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -18,11 +23,13 @@ public class Counter extends JFrame {
             "Zählerwechsel",
             "Kommentar",
     };
+    private static final String savedDataPath = "res/savedData.json";
     final JTable table = new JTable(new DefaultTableModel(new String[][]{}, columnNames));
-    final ArrayList<CustomerEntry> data = new ArrayList<CustomerEntry>();
+    final ArrayList<CustomerEntry> data = new ArrayList<>();
 
     public Counter() {
         super("Zähler");
+        load();
         init();
     }
 
@@ -45,6 +52,7 @@ public class Counter extends JFrame {
         exportButton.setMaximumSize(new Dimension(100, 50));
         final var exitButton = new Button("exit");
         exitButton.setMaximumSize(new Dimension(100, 50));
+        exitButton.addActionListener(e -> exit());
 
         sideButtons.add(addButton);
         sideButtons.add(exportButton);
@@ -109,6 +117,30 @@ public class Counter extends JFrame {
             );
         else
             return Optional.empty();
+    }
+
+    private void load() {
+
+    }
+
+    private void save() {
+        try {
+            var writer = new FileWriter(savedDataPath);
+            Gson gson = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .create();
+
+            gson.toJson(data, writer);
+
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Couldn't read file at location " + savedDataPath);
+        }
+    }
+
+    private void exit() {
+        save();
+        System.exit(0);
     }
 
     public static void main(String[] args) {
