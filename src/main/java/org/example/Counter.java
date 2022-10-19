@@ -1,16 +1,44 @@
 package org.example;
 
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.lang.reflect.Type;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Optional;
 
 import static org.example.CustomerEntry.formatter;
+
+class LocalDateSerializer implements JsonSerializer< LocalDate > {
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+    @Override
+    public JsonElement serialize(LocalDate localDate, Type srcType, JsonSerializationContext context) {
+        return new JsonPrimitive(formatter.format(localDate));
+    }
+}
+
+class LocalDateDeserializer implements JsonDeserializer< LocalDate > {
+    @Override
+    public LocalDate deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+            throws JsonParseException {
+        return LocalDate.parse(json.getAsString(),
+                DateTimeFormatter.ofPattern("dd.MM.yyyy").withLocale(Locale.GERMAN));
+    }
+}
 
 public class Counter extends JFrame {
     private static final String[] columnNames = new String[]{
@@ -24,16 +52,18 @@ public class Counter extends JFrame {
             "Zählerwechsel",
             "Kommentar",
     };
-    final ArrayList<CustomerEntry> data = new ArrayList<>();
+    ArrayList<CustomerEntry> data = new ArrayList<>();
     private final TableModel myTableModel = new DefaultTableModel(new String[][]{}, columnNames) {
         public boolean isCellEditable(int row, int column) {
             return false;
         }
     };
     final JTable table = new JTable(myTableModel);
+    private static final String savedDataPath = "res/savedData.json";
 
     public Counter() {
         super("Zähler");
+        load();
         init();
     }
 
@@ -68,15 +98,15 @@ public class Counter extends JFrame {
                     );
 
                     if (input.isPresent()) {
-                        table.setValueAt(input.get().customerNm(), rowIndex, 0);
-                        table.setValueAt(input.get().houseNm(), rowIndex, 1);
-                        table.setValueAt(input.get().apartmentNm(), rowIndex, 2);
-                        table.setValueAt(input.get().counterState(), rowIndex, 3);
-                        table.setValueAt(input.get().counterType(), rowIndex, 4);
-                        table.setValueAt(input.get().counterNum(), rowIndex, 5);
-                        table.setValueAt(input.get().date(), rowIndex, 6);
-                        table.setValueAt(input.get().counterSwitch(), rowIndex, 7);
-                        table.setValueAt(input.get().comment(), rowIndex, 8);
+                        table.setValueAt(input.get().customerNm, rowIndex, 0);
+                        table.setValueAt(input.get().houseNm, rowIndex, 1);
+                        table.setValueAt(input.get().apartmentNm, rowIndex, 2);
+                        table.setValueAt(input.get().counterState, rowIndex, 3);
+                        table.setValueAt(input.get().counterType, rowIndex, 4);
+                        table.setValueAt(input.get().counterNum, rowIndex, 5);
+                        table.setValueAt(input.get().date, rowIndex, 6);
+                        table.setValueAt(input.get().counterSwitch, rowIndex, 7);
+                        table.setValueAt(input.get().comment, rowIndex, 8);
                     }
                 }
             }
@@ -95,6 +125,7 @@ public class Counter extends JFrame {
         exportButton.setMaximumSize(new Dimension(100, 50));
         final var exitButton = new Button("exit");
         exitButton.setMaximumSize(new Dimension(100, 50));
+        exitButton.addActionListener(e -> exit());
 
         sideButtons.add(addButton);
         sideButtons.add(deleteButton);
@@ -120,7 +151,7 @@ public class Counter extends JFrame {
     }
 
     private void addRow(CustomerEntry entry, JTable t) {
-        ((DefaultTableModel) t.getModel()).addRow(new Object[]{entry.customerNm(), entry.houseNm(), entry.apartmentNm(), entry.counterState(), entry.counterType(), entry.counterNum(), entry.date(), entry.counterSwitch(), entry.comment()});
+        ((DefaultTableModel) t.getModel()).addRow(new Object[]{entry.customerNm, entry.houseNm, entry.apartmentNm, entry.counterState, entry.counterType, entry.counterNum, entry.date, entry.counterSwitch, entry.comment});
     }
 
     private void deleteRow(int index, JTable t) {
@@ -212,5 +243,46 @@ public class Counter extends JFrame {
             );
         else
             return Optional.empty();
+    }
+
+    private void load() {
+        Gson gson = new GsonBuilder()
+                .setPrettyPrinting()
+                .registerTypeAdapter(LocalDate.class, new LocalDateDeserializer())
+                .setDateFormat("dd.MM.yyyy")
+                .create();
+
+        try (Reader reader = new FileReader(savedDataPath)) {
+            var type = new TypeToken<ArrayList<CustomerEntry>>(){}.getType();
+
+            data = gson.fromJson(reader, type);
+
+            for (var d : data)
+                addRow(d, table);
+
+        } catch (IOException e) {
+            System.out.println("Couldn't load file at location");
+        }
+    }
+
+    private void save() {
+        try {
+            var writer = new FileWriter(savedDataPath);
+            Gson gson = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .setDateFormat("dd.MM.yyyy")
+                    .registerTypeAdapter(LocalDate.class, new LocalDateSerializer())
+                    .create();
+
+            gson.toJson(data, writer);
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Couldn't read file at location " + savedDataPath);
+        }
+    }
+
+    private void exit() {
+        save();
+        System.exit(0);
     }
 }

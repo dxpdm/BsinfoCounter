@@ -42,5 +42,16 @@
     "date": "30.06.2011",
     "counterSwitch": false,
     "comment": "Zählerstand steht noch da, aber in jahren wechseln"
+  },
+  {
+    "customerNm": 1,
+    "houseNm": 2,
+    "apartmentNm": 3,
+    "counterState": 4,
+    "counterType": "Wasser",
+    "counterNum": 5,
+    "date": "01.01.2004",
+    "counterSwitch": false,
+    "comment": "Test"
   }
 ]
