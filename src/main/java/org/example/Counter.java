@@ -7,13 +7,13 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
+import java.io.*;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -22,7 +22,20 @@ import java.util.Optional;
 
 import static org.example.CustomerEntry.formatter;
 
-class LocalDateSerializer implements JsonSerializer< LocalDate > {
+class NumberTextField extends JTextField {
+    NumberTextField(String text) {
+        super(text);
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                setEditable(e.getKeyChar() >= '0' && e.getKeyChar() <= '9'
+                        || e.getKeyChar() == '.' || e.getKeyCode() == KeyEvent.VK_BACK_SPACE);
+            }
+        });
+    }
+}
+
+class LocalDateSerializer implements JsonSerializer<LocalDate> {
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     @Override
@@ -31,7 +44,7 @@ class LocalDateSerializer implements JsonSerializer< LocalDate > {
     }
 }
 
-class LocalDateDeserializer implements JsonDeserializer< LocalDate > {
+class LocalDateDeserializer implements JsonDeserializer<LocalDate> {
     @Override
     public LocalDate deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
             throws JsonParseException {
@@ -52,14 +65,15 @@ public class Counter extends JFrame {
             "Zählerwechsel",
             "Kommentar",
     };
-    ArrayList<CustomerEntry> data = new ArrayList<>();
+    private static final String savedDataPath = "res/savedData.json";
+    private static final String exportedDataPath = "res/exportedData.csv";
     private final TableModel myTableModel = new DefaultTableModel(new String[][]{}, columnNames) {
         public boolean isCellEditable(int row, int column) {
             return false;
         }
     };
     final JTable table = new JTable(myTableModel);
-    private static final String savedDataPath = "res/savedData.json";
+    ArrayList<CustomerEntry> data = new ArrayList<>();
 
     public Counter() {
         super("Zähler");
@@ -123,6 +137,7 @@ public class Counter extends JFrame {
         deleteButton.addActionListener(e -> deleteSelectedElement());
         final var exportButton = new Button("export");
         exportButton.setMaximumSize(new Dimension(100, 50));
+        exportButton.addActionListener(e -> showExportPopup());
         final var exitButton = new Button("exit");
         exitButton.setMaximumSize(new Dimension(100, 50));
         exitButton.addActionListener(e -> exit());
@@ -162,7 +177,7 @@ public class Counter extends JFrame {
         final var inputPopup = new JPanel();
         inputPopup.setLayout(new GridLayout(9, 0));
 
-        final var customerNmInput = new JTextField("");
+        final var customerNmInput = new NumberTextField("");
         final var houseNmInput = new JTextField("");
         final var apartmentNmInput = new JTextField("");
         final var consumptionInput = new JTextField("");
@@ -245,6 +260,48 @@ public class Counter extends JFrame {
             return Optional.empty();
     }
 
+    private void showExportPopup() {
+        final var exportPopup = new JPanel();
+        exportPopup.setLayout(new GridLayout(5, 0));
+
+        final var dateStartInput = new JTextField("01.01.2000");
+        final var dateEndInput = new JTextField("01.01.2000");
+        final var customerNumInput = new JTextField();
+        final var houseNumInput = new JTextField();
+        final var apartmentNumInput = new JTextField();
+
+        final var datePanel = new JPanel();
+        datePanel.setLayout(new FlowLayout());
+        datePanel.add(dateStartInput);
+        datePanel.add(new JLabel(" - "));
+        datePanel.add(dateEndInput);
+
+        //exportPopup.add(new JLabel("Filter fürs Exportieren")); // .setFont(new Font("", Font.BOLD, 15))
+        exportPopup.add(new JLabel("Datum: "));
+        exportPopup.add(datePanel);
+        exportPopup.add(new JLabel("Kundennummer: "));
+        exportPopup.add(customerNumInput);
+        exportPopup.add(new JLabel("Hausnummer: "));
+        exportPopup.add(houseNumInput);
+        exportPopup.add(new JLabel("Wohnungsnummer: "));
+        exportPopup.add(apartmentNumInput);
+        exportPopup.add(new JLabel("Zählerart: "));
+        exportPopup.add(new JLabel("Wasser"));
+        /*
+        Datum der Ablesung von – bis
+        - Kundennummer
+        - Hausnummer
+        - Wohnungsnummer
+        - Zählerart
+        */
+
+        final var result = JOptionPane.showConfirmDialog(this, exportPopup, "Daten exportieren",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION)
+            exportData(Filter.from(dateStartInput, dateEndInput, customerNumInput, houseNumInput, apartmentNumInput, "Wasser"));
+    }
+
     private void load() {
         Gson gson = new GsonBuilder()
                 .setPrettyPrinting()
@@ -253,7 +310,8 @@ public class Counter extends JFrame {
                 .create();
 
         try (Reader reader = new FileReader(savedDataPath)) {
-            var type = new TypeToken<ArrayList<CustomerEntry>>(){}.getType();
+            var type = new TypeToken<ArrayList<CustomerEntry>>() {
+            }.getType();
 
             data = gson.fromJson(reader, type);
 
@@ -278,6 +336,28 @@ public class Counter extends JFrame {
             writer.close();
         } catch (IOException e) {
             System.out.println("Couldn't read file at location " + savedDataPath);
+        }
+    }
+
+    private void exportData(Filter filter) {
+        try {
+            final var writer = new PrintWriter(exportedDataPath);
+            writer.print("");
+            writer.close();
+
+            final var csvWriter = new BufferedWriter(new FileWriter(exportedDataPath, StandardCharsets.UTF_8,true));
+            data.forEach(entry -> {
+                try {
+                    if (filter.fulfills(entry))
+                        csvWriter.append(entry.toString());
+                } catch (IOException e) {
+                    System.out.println("couldn't add more entries");
+                }
+            });
+            csvWriter.close();
+
+        } catch (IOException e) {
+            System.out.println("Couldn't open path \"res/TODO-Entries.csv\" to save the TODO entries, exception:\n" + e.getMessage());
         }
     }
 
