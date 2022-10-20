@@ -8,6 +8,14 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
+
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.*;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.awt.event.*;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -104,6 +112,8 @@ public class Counter extends JFrame {
             "Kommentar",
     };
     private static final String savedDataPath = "res/savedData.json";
+    private static final String exportedDataPath = "res/exportedData.csv";
+
     private final TableModel myTableModel = new DefaultTableModel(new String[][]{}, columnNames) {
         public boolean isCellEditable(int row, int column) {
             return false;
@@ -203,6 +213,7 @@ public class Counter extends JFrame {
         deleteButton.addActionListener(e -> deleteSelectedElement());
         final var exportButton = new Button("export");
         exportButton.setMaximumSize(new Dimension(100, 50));
+        exportButton.addActionListener(e -> showExportPopup());
         final var exitButton = new Button("exit");
         exitButton.setMaximumSize(new Dimension(100, 50));
         exitButton.addActionListener(e -> exit());
@@ -244,7 +255,7 @@ public class Counter extends JFrame {
     private Optional<CustomerEntry> showInputPopup() {
         final var inputPopup = new JPanel();
         inputPopup.setLayout(new GridLayout(9, 0));
-
+        
         final var calender = Calendar.getInstance();
         calender.add(Calendar.YEAR, 0);
 
@@ -254,6 +265,7 @@ public class Counter extends JFrame {
         final var consumptionInput = new DoubleTextField("");
         final var counterNmInput = new IntegerTextField("");
         final var dateInput = new JDateChooser(calender.getTime());
+
         final var counterSwitchInput = new JComboBox<>(new String[]{"Nein", "Ja"});
         final var commentInput = new JTextField("");
 
@@ -339,6 +351,48 @@ public class Counter extends JFrame {
             return Optional.empty();
     }
 
+    private void showExportPopup() {
+        final var exportPopup = new JPanel();
+        exportPopup.setLayout(new GridLayout(5, 0));
+
+        final var dateStartInput = new JTextField("01.01.2000");
+        final var dateEndInput = new JTextField("01.01.2000");
+        final var customerNumInput = new JTextField();
+        final var houseNumInput = new JTextField();
+        final var apartmentNumInput = new JTextField();
+
+        final var datePanel = new JPanel();
+        datePanel.setLayout(new FlowLayout());
+        datePanel.add(dateStartInput);
+        datePanel.add(new JLabel(" - "));
+        datePanel.add(dateEndInput);
+
+        //exportPopup.add(new JLabel("Filter fürs Exportieren")); // .setFont(new Font("", Font.BOLD, 15))
+        exportPopup.add(new JLabel("Datum: "));
+        exportPopup.add(datePanel);
+        exportPopup.add(new JLabel("Kundennummer: "));
+        exportPopup.add(customerNumInput);
+        exportPopup.add(new JLabel("Hausnummer: "));
+        exportPopup.add(houseNumInput);
+        exportPopup.add(new JLabel("Wohnungsnummer: "));
+        exportPopup.add(apartmentNumInput);
+        exportPopup.add(new JLabel("Zählerart: "));
+        exportPopup.add(new JLabel("Wasser"));
+        /*
+        Datum der Ablesung von – bis
+        - Kundennummer
+        - Hausnummer
+        - Wohnungsnummer
+        - Zählerart
+        */
+
+        final var result = JOptionPane.showConfirmDialog(this, exportPopup, "Daten exportieren",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION)
+            exportData(Filter.from(dateStartInput, dateEndInput, customerNumInput, houseNumInput, apartmentNumInput, "Wasser"));
+    }
+
     private void load() {
         Gson gson = new GsonBuilder()
                 .setPrettyPrinting()
@@ -376,6 +430,28 @@ public class Counter extends JFrame {
         }
     }
 
+
+    private void exportData(Filter filter) {
+        try {
+            final var writer = new PrintWriter(exportedDataPath);
+            writer.print("");
+            writer.close();
+
+            final var csvWriter = new BufferedWriter(new FileWriter(exportedDataPath, StandardCharsets.UTF_8,true));
+            data.forEach(entry -> {
+                try {
+                    if (filter.fulfills(entry))
+                        csvWriter.append(entry.toString());
+                } catch (IOException e) {
+                    System.out.println("couldn't add more entries");
+                }
+            });
+            csvWriter.close();
+
+        } catch (IOException e) {
+            System.out.println("Couldn't open path \"res/TODO-Entries.csv\" to save the TODO entries, exception:\n" + e.getMessage());
+        }
+
     private CustomerEntry getCustomerEntryFromTable(int index) {
         return new CustomerEntry(
                 (int) table.getValueAt(index, 0),
@@ -388,6 +464,7 @@ public class Counter extends JFrame {
                 (boolean) table.getValueAt(index, 7),
                 (String) table.getValueAt(index, 8)
         );
+
     }
 
     private void exit() {
