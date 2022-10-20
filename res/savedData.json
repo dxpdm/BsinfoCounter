@@ -1,57 +1,35 @@
 [
   {
-    "customerNm": 1,
-    "houseNm": 2,
-    "apartmentNm": 3,
-    "counterState": 4,
+    "customerNm": 1234,
+    "houseNm": 1234,
+    "apartmentNm": 1234,
+    "counterState": 1234,
     "counterType": "Wasser",
-    "counterNum": 5,
-    "date": "11.11.2000",
+    "counterNum": 1234,
+    "date": "09.10.2012",
     "counterSwitch": false,
-    "comment": "haren"
+    "comment": "dies ist ein kelb test"
   },
   {
-    "customerNm": 6,
-    "houseNm": 5,
-    "apartmentNm": 4,
-    "counterState": 3,
-    "counterType": "Wasser",
-    "counterNum": 2,
-    "date": "01.01.2000",
-    "counterSwitch": false,
-    "comment": "kelb"
-  },
-  {
-    "customerNm": 1243,
+    "customerNm": 4321,
     "houseNm": 4321,
-    "apartmentNm": 4,
-    "counterState": 213468987,
+    "apartmentNm": 4321,
+    "counterState": 4321,
     "counterType": "Wasser",
-    "counterNum": 56,
-    "date": "31.12.2010",
-    "counterSwitch": false,
-    "comment": "Herr Kelb wechselt nicht"
-  },
-  {
-    "customerNm": 3759336,
-    "houseNm": 46,
-    "apartmentNm": 2,
-    "counterState": 123757483,
-    "counterType": "Wasser",
-    "counterNum": 129,
-    "date": "30.06.2011",
-    "counterSwitch": false,
-    "comment": "Zählerstand steht noch da, aber in jahren wechseln"
+    "counterNum": 4321,
+    "date": "25.10.2020",
+    "counterSwitch": true,
+    "comment": "kelb change 2"
   },
   {
     "customerNm": 1,
-    "houseNm": 2,
-    "apartmentNm": 3,
-    "counterState": 4,
+    "houseNm": 1,
+    "apartmentNm": 1,
+    "counterState": 1,
     "counterType": "Wasser",
-    "counterNum": 5,
-    "date": "01.01.2004",
+    "counterNum": 1,
+    "date": "20.10.2022",
     "counterSwitch": false,
-    "comment": "Test"
+    "comment": "Hsrsn"
   }
 ]
