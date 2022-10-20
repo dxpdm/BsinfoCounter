@@ -18,6 +18,8 @@ Dio:
 * Versucht die Daten anzuzeigen
 * Versucht die Dateneingabe auf die richtige Eingabe zu beschränken
 
+David: krank
+
 Joshua:
 * -
 - Gedanken zum Abhalten: -
@@ -41,4 +43,25 @@ Dio:
 * Gedanken zum Abhalten: -
 * Heute noch Popup und Filter fürs Exportieren beenden.
 
+David: krank
 
+Joshua: krank
+
+### Tag 4:
+
+Emre:
+* JCalender Jdatepicker wurde angefangen
+* Gedanken zum Abhalten: -
+* Heute noch: JCalender fertig implementieren
+
+Dio:
+* Filter fertig machen
+* Gedanken zum Abhalten: -
+* Heute noch: Code aufräumen
+
+David:
+* -war krank
+* Gedanken zum Abhalten: -
+* User-Interface ergonomischer gestalten
+
+Joshua: krank
