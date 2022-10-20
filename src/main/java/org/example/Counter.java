@@ -2,27 +2,78 @@ package org.example;
 
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Type;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Locale;
 import java.util.Optional;
 
 import static org.example.CustomerEntry.formatter;
 
-class LocalDateSerializer implements JsonSerializer< LocalDate > {
+class DateLabelFormatter extends JFormattedTextField.AbstractFormatter {
+
+    private final String datePattern = "dd.MM.yyyy";
+    private final SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
+
+    @Override
+    public Object stringToValue(String text) throws ParseException {
+        return dateFormatter.parseObject(text);
+    }
+
+    @Override
+    public String valueToString(Object value) {
+        if (value != null) {
+            Calendar cal = (Calendar) value;
+            return dateFormatter.format(cal.getTime());
+        }
+
+        return "";
+    }
+
+}
+
+class IntegerTextField extends JTextField {
+    public IntegerTextField(String text) {
+        super(text);
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                setEditable(e.getKeyChar() >= '0' && e.getKeyChar() <= '9'
+                        || e.getKeyChar() == KeyEvent.VK_BACK_SPACE);
+            }
+        });
+    }
+}
+
+class DoubleTextField extends JTextField {
+    public DoubleTextField(String text) {
+        super(text);
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                setEditable(e.getKeyChar() >= '0' && e.getKeyChar() <= '9'
+                        || e.getKeyChar() == '.' || e.getKeyChar() == ',' || e.getKeyChar() == KeyEvent.VK_BACK_SPACE);
+            }
+        });
+    }
+}
+
+class LocalDateSerializer implements JsonSerializer<LocalDate> {
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     @Override
@@ -31,7 +82,7 @@ class LocalDateSerializer implements JsonSerializer< LocalDate > {
     }
 }
 
-class LocalDateDeserializer implements JsonDeserializer< LocalDate > {
+class LocalDateDeserializer implements JsonDeserializer<LocalDate> {
     @Override
     public LocalDate deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
             throws JsonParseException {
@@ -52,14 +103,15 @@ public class Counter extends JFrame {
             "Zählerwechsel",
             "Kommentar",
     };
-    ArrayList<CustomerEntry> data = new ArrayList<>();
+    private static final String savedDataPath = "res/savedData.json";
     private final TableModel myTableModel = new DefaultTableModel(new String[][]{}, columnNames) {
         public boolean isCellEditable(int row, int column) {
             return false;
         }
     };
+
     final JTable table = new JTable(myTableModel);
-    private static final String savedDataPath = "res/savedData.json";
+    ArrayList<CustomerEntry> data = new ArrayList<>();
 
     public Counter() {
         super("Zähler");
@@ -77,6 +129,13 @@ public class Counter extends JFrame {
 
         con.add(new JScrollPane(table), BorderLayout.CENTER);
 
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                exit();
+            }
+        });
+
         table.setGridColor(Color.LIGHT_GRAY);
         table.setAutoCreateRowSorter(true);
 
@@ -92,12 +151,33 @@ public class Counter extends JFrame {
                             Integer.toString((int) table.getValueAt(rowIndex, 3)),
                             Integer.toString((int) table.getValueAt(rowIndex, 5)),
                             ((LocalDate) table.getValueAt(rowIndex, 6)).format(formatter),
-                            table.getValueAt(rowIndex, 7).equals("Ja"),
+                            (boolean) table.getValueAt(rowIndex, 7),
                             (String) table.getValueAt(rowIndex, 8)
-
                     );
 
                     if (input.isPresent()) {
+                        data.set(data.indexOf(new CustomerEntry(
+                                        (int) table.getValueAt(rowIndex, 0),
+                                        (int) table.getValueAt(rowIndex, 1),
+                                        (int) table.getValueAt(rowIndex, 2),
+                                        (int) table.getValueAt(rowIndex, 3),
+                                        "Wasser",
+                                        (int) table.getValueAt(rowIndex, 5),
+                                        (LocalDate) table.getValueAt(rowIndex, 6),
+                                        (boolean) table.getValueAt(rowIndex, 7),
+                                        (String) table.getValueAt(rowIndex, 8))),
+                                new CustomerEntry(
+                                        input.get().customerNm,
+                                        input.get().houseNm,
+                                        input.get().apartmentNm,
+                                        input.get().counterState,
+                                        input.get().counterType,
+                                        input.get().counterNum,
+                                        input.get().date,
+                                        input.get().counterSwitch,
+                                        input.get().comment
+                                ));
+
                         table.setValueAt(input.get().customerNm, rowIndex, 0);
                         table.setValueAt(input.get().houseNm, rowIndex, 1);
                         table.setValueAt(input.get().apartmentNm, rowIndex, 2);
@@ -140,7 +220,10 @@ public class Counter extends JFrame {
     }
 
     private void deleteSelectedElement() {
-        deleteRow(table.getSelectedRow(), table);
+        int rowIndex = table.getSelectedRow();
+
+        data.remove(getCustomerEntryFromTable(rowIndex));
+        deleteRow(rowIndex, table);
     }
 
     private void addElement(Optional<CustomerEntry> entry) {
@@ -162,12 +245,15 @@ public class Counter extends JFrame {
         final var inputPopup = new JPanel();
         inputPopup.setLayout(new GridLayout(9, 0));
 
-        final var customerNmInput = new JTextField("");
-        final var houseNmInput = new JTextField("");
-        final var apartmentNmInput = new JTextField("");
-        final var consumptionInput = new JTextField("");
-        final var counterNmInput = new JTextField("");
-        final var dateInput = new JTextField("");
+        final var calender = Calendar.getInstance();
+        calender.add(Calendar.YEAR, 0);
+
+        final var customerNmInput = new IntegerTextField("");
+        final var houseNmInput = new IntegerTextField("");
+        final var apartmentNmInput = new IntegerTextField("");
+        final var consumptionInput = new DoubleTextField("");
+        final var counterNmInput = new IntegerTextField("");
+        final var dateInput = new JDateChooser(calender.getTime());
         final var counterSwitchInput = new JComboBox<>(new String[]{"Nein", "Ja"});
         final var commentInput = new JTextField("");
 
@@ -206,12 +292,20 @@ public class Counter extends JFrame {
         final var inputPopup = new JPanel();
         inputPopup.setLayout(new GridLayout(9, 0));
 
-        final var customerNmInput = new JTextField(customerNum);
-        final var houseNmInput = new JTextField(houseNum);
-        final var apartmentNmInput = new JTextField(apartmentNum);
-        final var consumptionInput = new JTextField(consumption);
-        final var counterNmInput = new JTextField(counterNum);
-        final var dateInput = new JTextField(date);
+        final var calender = Calendar.getInstance();
+        try {
+            calender.setTime(new SimpleDateFormat("dd.MM.yyyy").parse(date));
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
+        calender.add(Calendar.YEAR, 0);
+
+        final var customerNmInput = new IntegerTextField(customerNum);
+        final var houseNmInput = new IntegerTextField(houseNum);
+        final var apartmentNmInput = new IntegerTextField(apartmentNum);
+        final var consumptionInput = new DoubleTextField(consumption);
+        final var counterNmInput = new IntegerTextField(counterNum);
+        final var dateInput = new JDateChooser(calender.getTime());
         final var counterSwitchInput = new JComboBox<>(isTrue ? new String[]{"Ja", "Nein"} : new String[]{"Nein", "Ja"});
         final var commentInput = new JTextField(comment);
 
@@ -253,7 +347,8 @@ public class Counter extends JFrame {
                 .create();
 
         try (Reader reader = new FileReader(savedDataPath)) {
-            var type = new TypeToken<ArrayList<CustomerEntry>>(){}.getType();
+            var type = new TypeToken<ArrayList<CustomerEntry>>() {
+            }.getType();
 
             data = gson.fromJson(reader, type);
 
@@ -279,6 +374,20 @@ public class Counter extends JFrame {
         } catch (IOException e) {
             System.out.println("Couldn't read file at location " + savedDataPath);
         }
+    }
+
+    private CustomerEntry getCustomerEntryFromTable(int index) {
+        return new CustomerEntry(
+                (int) table.getValueAt(index, 0),
+                (int) table.getValueAt(index, 1),
+                (int) table.getValueAt(index, 2),
+                (int) table.getValueAt(index, 3),
+                "Wasser",
+                (int) table.getValueAt(index, 5),
+                (LocalDate) table.getValueAt(index, 6),
+                (boolean) table.getValueAt(index, 7),
+                (String) table.getValueAt(index, 8)
+        );
     }
 
     private void exit() {
