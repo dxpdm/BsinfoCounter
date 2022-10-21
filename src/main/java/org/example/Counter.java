@@ -8,20 +8,10 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
-
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.awt.event.*;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
-import java.lang.reflect.Type;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -34,7 +24,6 @@ import java.util.Optional;
 import static org.example.CustomerEntry.formatter;
 
 class DateLabelFormatter extends JFormattedTextField.AbstractFormatter {
-
     private final String datePattern = "dd.MM.yyyy";
     private final SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
 
@@ -52,8 +41,9 @@ class DateLabelFormatter extends JFormattedTextField.AbstractFormatter {
 
         return "";
     }
-
 }
+
+//* Here something like "LimitedTextField"
 
 class IntegerTextField extends JTextField {
     public IntegerTextField(String text) {
@@ -255,7 +245,7 @@ public class Counter extends JFrame {
     private Optional<CustomerEntry> showInputPopup() {
         final var inputPopup = new JPanel();
         inputPopup.setLayout(new GridLayout(9, 0));
-        
+
         final var calender = Calendar.getInstance();
         calender.add(Calendar.YEAR, 0);
 
@@ -353,14 +343,27 @@ public class Counter extends JFrame {
 
     private void showExportPopup() {
         final var exportPopup = new JPanel();
-        exportPopup.setLayout(new GridLayout(5, 0));
+        exportPopup.setLayout(new BorderLayout());
 
-        final var dateStartInput = new JTextField("01.01.2000");
-        final var dateEndInput = new JTextField("01.01.2000");
+        final var inputPanel = new JPanel();
+        inputPanel.setLayout(new GridLayout(5, 0));
+
+        final var labelPanel = new JPanel();
+        labelPanel.setLayout(new GridLayout(5, 0));
+
+        final var calender = Calendar.getInstance();
+        calender.add(Calendar.YEAR, 0);
+
+        final var dateStartInput = new JDateChooser();
+        dateStartInput.setPreferredSize(new Dimension(115, 20));
+        final var dateEndInput = new JDateChooser();
+        dateEndInput.setPreferredSize(new Dimension(115, 20));
         final var customerNumInput = new JTextField();
         final var houseNumInput = new JTextField();
         final var apartmentNumInput = new JTextField();
 
+        //final var datePanel = new JPanel();
+        //datePanel.setLayout(new BoxLayout(datePanel, BoxLayout.X_AXIS));
         final var datePanel = new JPanel();
         datePanel.setLayout(new FlowLayout());
         datePanel.add(dateStartInput);
@@ -368,29 +371,27 @@ public class Counter extends JFrame {
         datePanel.add(dateEndInput);
 
         //exportPopup.add(new JLabel("Filter fürs Exportieren")); // .setFont(new Font("", Font.BOLD, 15))
-        exportPopup.add(new JLabel("Datum: "));
-        exportPopup.add(datePanel);
-        exportPopup.add(new JLabel("Kundennummer: "));
-        exportPopup.add(customerNumInput);
-        exportPopup.add(new JLabel("Hausnummer: "));
-        exportPopup.add(houseNumInput);
-        exportPopup.add(new JLabel("Wohnungsnummer: "));
-        exportPopup.add(apartmentNumInput);
-        exportPopup.add(new JLabel("Zählerart: "));
-        exportPopup.add(new JLabel("Wasser"));
-        /*
-        Datum der Ablesung von – bis
-        - Kundennummer
-        - Hausnummer
-        - Wohnungsnummer
-        - Zählerart
-        */
+
+        labelPanel.add(new JLabel("Datum: "));
+        labelPanel.add(new JLabel("Kundennummer: "));
+        labelPanel.add(new JLabel("Hausnummer: "));
+        labelPanel.add(new JLabel("Wohnungsnummer: "));
+        labelPanel.add(new JLabel("Zählerart: "));
+
+        inputPanel.add(datePanel);
+        inputPanel.add(customerNumInput);
+        inputPanel.add(houseNumInput);
+        inputPanel.add(apartmentNumInput);
+        inputPanel.add(new JLabel("Wasser"));
+
+        exportPopup.add(labelPanel, BorderLayout.WEST);
+        exportPopup.add(inputPanel, BorderLayout.CENTER);
 
         final var result = JOptionPane.showConfirmDialog(this, exportPopup, "Daten exportieren",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION)
-            exportData(Filter.from(dateStartInput, dateEndInput, customerNumInput, houseNumInput, apartmentNumInput, "Wasser"));
+            exportData(Filter.from(dateStartInput.getDate(), dateEndInput.getDate(), customerNumInput, houseNumInput, apartmentNumInput, "Wasser"));
     }
 
     private void load() {
@@ -437,7 +438,7 @@ public class Counter extends JFrame {
             writer.print("");
             writer.close();
 
-            final var csvWriter = new BufferedWriter(new FileWriter(exportedDataPath, StandardCharsets.UTF_8,true));
+            final var csvWriter = new BufferedWriter(new FileWriter(exportedDataPath, StandardCharsets.UTF_8, true));
             data.forEach(entry -> {
                 try {
                     if (filter.fulfills(entry))
@@ -451,6 +452,7 @@ public class Counter extends JFrame {
         } catch (IOException e) {
             System.out.println("Couldn't open path \"res/TODO-Entries.csv\" to save the TODO entries, exception:\n" + e.getMessage());
         }
+    }
 
     private CustomerEntry getCustomerEntryFromTable(int index) {
         return new CustomerEntry(

@@ -1,20 +1,24 @@
 package org.example;
 
+import com.toedter.calendar.JDateChooser;
+
 import javax.swing.*;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.ZoneId;
+import java.util.Date;
 
 import static org.example.CustomerEntry.formatter;
 
 class Filter {
-    String dateStart;
-    String dateEnd;
+    LocalDate dateStart;
+    LocalDate dateEnd;
     String customerNum;
     String houseNum;
     String apartmentNum;
     String counterType;
 
-    public Filter(String dateStart, String dateEnd, String customerNum, String houseNum, String apartmentNum, String counterType) {
+    public Filter(LocalDate dateStart, LocalDate dateEnd, String customerNum, String houseNum, String apartmentNum, String counterType) {
         this.dateStart = dateStart;
         this.dateEnd = dateEnd;
         this.customerNum = customerNum;
@@ -26,8 +30,8 @@ class Filter {
     public boolean fulfills(CustomerEntry entry) {
         boolean result = true;
 
-        if (!(dateStart.equals("") && dateEnd.equals("")))
-            result &= entry.date.isAfter(LocalDate.parse(dateStart, formatter)) && entry.date.isBefore(LocalDate.parse(dateEnd, formatter));
+        if (!(dateStart == null || dateEnd == null))
+            result &= entry.date.isAfter(dateStart) && entry.date.isBefore(dateEnd);
         if (!customerNum.equals(""))
             result &= Integer.parseInt(customerNum) == entry.customerNm;
         if (!houseNum.equals(""))
@@ -41,8 +45,15 @@ class Filter {
         return result;
     }
 
-    public static Filter from(JTextField dateStart, JTextField dateEnd, JTextField customerNum, JTextField houseNum, JTextField apartmentNum, String counterType) {
-        return new Filter(dateStart.getText(), dateEnd.getText(), customerNum.getText(), houseNum.getText(),
+    public static Filter from(Date dateStart, Date dateEnd, JTextField customerNum, JTextField houseNum, JTextField apartmentNum, String counterType) {
+        return new Filter(toLocalDate(dateStart), toLocalDate(dateEnd), customerNum.getText(), houseNum.getText(),
                 apartmentNum.getText(), counterType);
+    }
+
+    static private LocalDate toLocalDate(Date date) {
+        if (date != null)
+            return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        else
+            return null;
     }
 }
