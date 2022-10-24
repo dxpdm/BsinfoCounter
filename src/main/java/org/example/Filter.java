@@ -1,14 +1,9 @@
 package org.example;
 
-import com.toedter.calendar.JDateChooser;
-
 import javax.swing.*;
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.ZoneId;
 import java.util.Date;
-
-import static org.example.CustomerEntry.formatter;
 
 class Filter {
     LocalDate dateStart;
@@ -27,11 +22,16 @@ class Filter {
         this.counterType = counterType;
     }
 
+    public static Filter of(Date dateStart, Date dateEnd, JTextField customerNum, JTextField houseNum, JTextField apartmentNum, String counterType) {
+        return new Filter(toLocalDate(dateStart), toLocalDate(dateEnd), customerNum.getText(), houseNum.getText(),
+                apartmentNum.getText(), counterType);
+    }
+
     public boolean fulfills(CustomerEntry entry) {
         boolean result = true;
 
         if (!(dateStart == null || dateEnd == null))
-            result &= entry.date.isAfter(dateStart) && entry.date.isBefore(dateEnd);
+            result = entry.date.isAfter(dateStart) && entry.date.isBefore(dateEnd);
         if (!customerNum.equals(""))
             result &= Integer.parseInt(customerNum) == entry.customerNm;
         if (!houseNum.equals(""))
@@ -43,11 +43,6 @@ class Filter {
             result &= counterType == entry.counterType; */
 
         return result;
-    }
-
-    public static Filter from(Date dateStart, Date dateEnd, JTextField customerNum, JTextField houseNum, JTextField apartmentNum, String counterType) {
-        return new Filter(toLocalDate(dateStart), toLocalDate(dateEnd), customerNum.getText(), houseNum.getText(),
-                apartmentNum.getText(), counterType);
     }
 
     static private LocalDate toLocalDate(Date date) {

@@ -1,16 +1,19 @@
 package org.example;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
-import java.lang.reflect.Type;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -18,76 +21,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Locale;
 import java.util.Optional;
-
-import static org.example.CustomerEntry.formatter;
-
-class DateLabelFormatter extends JFormattedTextField.AbstractFormatter {
-    private final String datePattern = "dd.MM.yyyy";
-    private final SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
-
-    @Override
-    public Object stringToValue(String text) throws ParseException {
-        return dateFormatter.parseObject(text);
-    }
-
-    @Override
-    public String valueToString(Object value) {
-        if (value != null) {
-            Calendar cal = (Calendar) value;
-            return dateFormatter.format(cal.getTime());
-        }
-
-        return "";
-    }
-}
-
-//* Here something like "LimitedTextField"
-
-class IntegerTextField extends JTextField {
-    public IntegerTextField(String text) {
-        super(text);
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                setEditable(e.getKeyChar() >= '0' && e.getKeyChar() <= '9'
-                        || e.getKeyChar() == KeyEvent.VK_BACK_SPACE);
-            }
-        });
-    }
-}
-
-class DoubleTextField extends JTextField {
-    public DoubleTextField(String text) {
-        super(text);
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                setEditable(e.getKeyChar() >= '0' && e.getKeyChar() <= '9'
-                        || e.getKeyChar() == '.' || e.getKeyChar() == ',' || e.getKeyChar() == KeyEvent.VK_BACK_SPACE);
-            }
-        });
-    }
-}
-
-class LocalDateSerializer implements JsonSerializer<LocalDate> {
-    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-
-    @Override
-    public JsonElement serialize(LocalDate localDate, Type srcType, JsonSerializationContext context) {
-        return new JsonPrimitive(formatter.format(localDate));
-    }
-}
-
-class LocalDateDeserializer implements JsonDeserializer<LocalDate> {
-    @Override
-    public LocalDate deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
-            throws JsonParseException {
-        return LocalDate.parse(json.getAsString(),
-                DateTimeFormatter.ofPattern("dd.MM.yyyy").withLocale(Locale.GERMAN));
-    }
-}
 
 public class Counter extends JFrame {
     private static final String[] columnNames = new String[]{
@@ -103,14 +37,13 @@ public class Counter extends JFrame {
     };
     private static final String savedDataPath = "res/savedData.json";
     private static final String exportedDataPath = "res/exportedData.csv";
+    static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    private final TableModel myTableModel = new DefaultTableModel(new String[][]{}, columnNames) {
+    final JTable table = new JTable(new DefaultTableModel(new String[][]{}, columnNames) {
         public boolean isCellEditable(int row, int column) {
             return false;
         }
-    };
-
-    final JTable table = new JTable(myTableModel);
+    });
     ArrayList<CustomerEntry> data = new ArrayList<>();
 
     public Counter() {
@@ -144,49 +77,19 @@ public class Counter extends JFrame {
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() % 2 == 0) {
                     int rowIndex = table.getSelectedRow();
-                    var input = showInputPopup(
-                            Integer.toString((int) table.getValueAt(rowIndex, 0)),
-                            Integer.toString((int) table.getValueAt(rowIndex, 1)),
-                            Integer.toString((int) table.getValueAt(rowIndex, 2)),
-                            Integer.toString((int) table.getValueAt(rowIndex, 3)),
-                            Integer.toString((int) table.getValueAt(rowIndex, 5)),
-                            ((LocalDate) table.getValueAt(rowIndex, 6)).format(formatter),
-                            (boolean) table.getValueAt(rowIndex, 7),
-                            (String) table.getValueAt(rowIndex, 8)
-                    );
+                    var input = showInputPopup(getCustomerEntryFromTable(rowIndex));
 
                     if (input.isPresent()) {
-                        data.set(data.indexOf(new CustomerEntry(
-                                        (int) table.getValueAt(rowIndex, 0),
-                                        (int) table.getValueAt(rowIndex, 1),
-                                        (int) table.getValueAt(rowIndex, 2),
-                                        (int) table.getValueAt(rowIndex, 3),
-                                        "Wasser",
-                                        (int) table.getValueAt(rowIndex, 5),
-                                        (LocalDate) table.getValueAt(rowIndex, 6),
-                                        (boolean) table.getValueAt(rowIndex, 7),
-                                        (String) table.getValueAt(rowIndex, 8))),
-                                new CustomerEntry(
-                                        input.get().customerNm,
-                                        input.get().houseNm,
-                                        input.get().apartmentNm,
-                                        input.get().counterState,
-                                        input.get().counterType,
-                                        input.get().counterNum,
-                                        input.get().date,
-                                        input.get().counterSwitch,
-                                        input.get().comment
-                                ));
+                        data.set(data.indexOf(getCustomerEntryFromTable(rowIndex)), input.get());
 
-                        table.setValueAt(input.get().customerNm, rowIndex, 0);
-                        table.setValueAt(input.get().houseNm, rowIndex, 1);
-                        table.setValueAt(input.get().apartmentNm, rowIndex, 2);
-                        table.setValueAt(input.get().counterState, rowIndex, 3);
-                        table.setValueAt(input.get().counterType, rowIndex, 4);
-                        table.setValueAt(input.get().counterNum, rowIndex, 5);
-                        table.setValueAt(input.get().date, rowIndex, 6);
-                        table.setValueAt(input.get().counterSwitch, rowIndex, 7);
-                        table.setValueAt(input.get().comment, rowIndex, 8);
+                        for (int i = 0; i < table.getColumnCount(); i++) {
+                            try {
+                                Field[] members = CustomerEntry.class.getDeclaredFields();
+                                table.setValueAt(members[i].get(input.get()), rowIndex, i);
+                            } catch (IllegalAccessException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        }
                     }
                 }
             }
@@ -195,23 +98,10 @@ public class Counter extends JFrame {
         final var sideButtons = new JPanel();
         sideButtons.setLayout(new BoxLayout(sideButtons, BoxLayout.Y_AXIS));
 
-        final var addButton = new Button("hinzufügen");
-        addButton.setMaximumSize(new Dimension(100, 50));
-        addButton.addActionListener(e -> addElement(showInputPopup()));
-        final var deleteButton = new Button("entfernen");
-        deleteButton.setMaximumSize(new Dimension(100, 50));
-        deleteButton.addActionListener(e -> deleteSelectedElement());
-        final var exportButton = new Button("export");
-        exportButton.setMaximumSize(new Dimension(100, 50));
-        exportButton.addActionListener(e -> showExportPopup());
-        final var exitButton = new Button("exit");
-        exitButton.setMaximumSize(new Dimension(100, 50));
-        exitButton.addActionListener(e -> exit());
-
-        sideButtons.add(addButton);
-        sideButtons.add(deleteButton);
-        sideButtons.add(exportButton);
-        sideButtons.add(exitButton);
+        sideButtons.add(makeSideButton("hinzufügen", () -> addElement(showInputPopup())));
+        sideButtons.add(makeSideButton("entfernen", this::deleteSelectedElement));
+        sideButtons.add(makeSideButton("export", this::showExportPopup));
+        sideButtons.add(makeSideButton("exit", this::exit));
 
         con.add(sideButtons, BorderLayout.EAST);
 
@@ -220,11 +110,12 @@ public class Counter extends JFrame {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
     }
 
-    private void deleteSelectedElement() {
-        int rowIndex = table.getSelectedRow();
+    private JButton makeSideButton(String label, Runnable callback) {
+        final var button = new JButton(label);
+        button.setMaximumSize(new Dimension(100, 50));
+        button.addActionListener(e -> callback.run());
 
-        data.remove(getCustomerEntryFromTable(rowIndex));
-        deleteRow(rowIndex, table);
+        return button;
     }
 
     private void addElement(Optional<CustomerEntry> entry) {
@@ -238,105 +129,69 @@ public class Counter extends JFrame {
         ((DefaultTableModel) t.getModel()).addRow(new Object[]{entry.customerNm, entry.houseNm, entry.apartmentNm, entry.counterState, entry.counterType, entry.counterNum, entry.date, entry.counterSwitch, entry.comment});
     }
 
+    private void deleteSelectedElement() {
+        int rowIndex = table.getSelectedRow();
+
+        data.remove(getCustomerEntryFromTable(rowIndex));
+        deleteRow(rowIndex, table);
+    }
+
     private void deleteRow(int index, JTable t) {
         ((DefaultTableModel) t.getModel()).removeRow(index);
     }
 
     private Optional<CustomerEntry> showInputPopup() {
-        final var inputPopup = new JPanel();
-        inputPopup.setLayout(new GridLayout(9, 0));
-
-        final var calender = Calendar.getInstance();
-        calender.add(Calendar.YEAR, 0);
-
-        final var customerNmInput = new IntegerTextField("");
-        final var houseNmInput = new IntegerTextField("");
-        final var apartmentNmInput = new IntegerTextField("");
-        final var consumptionInput = new DoubleTextField("");
-        final var counterNmInput = new IntegerTextField("");
-        final var dateInput = new JDateChooser(calender.getTime());
-
-        final var counterSwitchInput = new JComboBox<>(new String[]{"Nein", "Ja"});
-        final var commentInput = new JTextField("");
-
-        inputPopup.add(new JLabel(columnNames[0]));
-        inputPopup.add(customerNmInput);
-        inputPopup.add(new JLabel(columnNames[1]));
-        inputPopup.add(houseNmInput);
-        inputPopup.add(new JLabel(columnNames[2]));
-        inputPopup.add(apartmentNmInput);
-        inputPopup.add(new JLabel(columnNames[3]));
-        inputPopup.add(consumptionInput);
-        inputPopup.add(new JLabel(columnNames[4]));
-        inputPopup.add(new JLabel("Wasser"));
-        inputPopup.add(new JLabel(columnNames[5]));
-        inputPopup.add(counterNmInput);
-        inputPopup.add(new JLabel(columnNames[6]));
-        inputPopup.add(dateInput);
-        inputPopup.add(new JLabel(columnNames[7]));
-        inputPopup.add(counterSwitchInput);
-        inputPopup.add(new JLabel(columnNames[8]));
-        inputPopup.add(commentInput);
-
-        final var result = JOptionPane.showConfirmDialog(this, inputPopup, "Daten einfügen",
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (result == JOptionPane.OK_OPTION)
-            return Optional.of(
-                    CustomerEntry.of(customerNmInput, houseNmInput, apartmentNmInput, consumptionInput, "Wasser", counterNmInput, dateInput, counterSwitchInput, commentInput)
-            );
-        else
-            return Optional.empty();
+        return showInputPopup("", "", "", "", "", "", false, "");
     }
 
-    private Optional<CustomerEntry> showInputPopup(String customerNum, String houseNum, String apartmentNum, String consumption,
+    private Optional<CustomerEntry> showInputPopup(CustomerEntry entry) {
+        return showInputPopup(
+                Integer.toString(entry.customerNm),
+                Integer.toString(entry.houseNm),
+                Integer.toString(entry.apartmentNm),
+                Integer.toString(entry.counterState),
+                Integer.toString(entry.counterNum),
+                entry.date.format(formatter),
+                entry.counterSwitch,
+                entry.comment
+        );
+    }
+
+    private Optional<CustomerEntry> showInputPopup(String customerNum, String houseNum, String apartmentNum, String counterState,
                                                    String counterNum, String date, boolean isTrue, String comment) {
         final var inputPopup = new JPanel();
         inputPopup.setLayout(new GridLayout(9, 0));
 
         final var calender = Calendar.getInstance();
         try {
-            calender.setTime(new SimpleDateFormat("dd.MM.yyyy").parse(date));
+            if (!date.equals(""))
+                calender.setTime(new SimpleDateFormat("dd.MM.yyyy").parse(date));
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }
         calender.add(Calendar.YEAR, 0);
 
-        final var customerNmInput = new IntegerTextField(customerNum);
-        final var houseNmInput = new IntegerTextField(houseNum);
-        final var apartmentNmInput = new IntegerTextField(apartmentNum);
-        final var consumptionInput = new DoubleTextField(consumption);
-        final var counterNmInput = new IntegerTextField(counterNum);
-        final var dateInput = new JDateChooser(calender.getTime());
-        final var counterSwitchInput = new JComboBox<>(isTrue ? new String[]{"Ja", "Nein"} : new String[]{"Nein", "Ja"});
-        final var commentInput = new JTextField(comment);
+        final var inputArray = new JComponent[9];
+        inputArray[0] = new IntegerTextField(customerNum);
+        inputArray[1] = new IntegerTextField(houseNum);
+        inputArray[2] = new IntegerTextField(apartmentNum);
+        inputArray[3] = new DoubleTextField(counterState);
+        inputArray[4] = new JLabel("Wasser");
+        inputArray[5] = new IntegerTextField(counterNum);
+        inputArray[6] = new JDateChooser(calender.getTime());
+        inputArray[7] = new JComboBox<>(isTrue ? new String[]{"Ja", "Nein"} : new String[]{"Nein", "Ja"});
+        inputArray[8] = new JTextField(comment);
 
-        inputPopup.add(new JLabel(columnNames[0]));
-        inputPopup.add(customerNmInput);
-        inputPopup.add(new JLabel(columnNames[1]));
-        inputPopup.add(houseNmInput);
-        inputPopup.add(new JLabel(columnNames[2]));
-        inputPopup.add(apartmentNmInput);
-        inputPopup.add(new JLabel(columnNames[3]));
-        inputPopup.add(consumptionInput);
-        inputPopup.add(new JLabel(columnNames[4]));
-        inputPopup.add(new JLabel("Wasser"));
-        inputPopup.add(new JLabel(columnNames[5]));
-        inputPopup.add(counterNmInput);
-        inputPopup.add(new JLabel(columnNames[6]));
-        inputPopup.add(dateInput);
-        inputPopup.add(new JLabel(columnNames[7]));
-        inputPopup.add(counterSwitchInput);
-        inputPopup.add(new JLabel(columnNames[8]));
-        inputPopup.add(commentInput);
+        for (int i = 0; i < inputArray.length; i++) {
+            inputPopup.add(new JLabel(columnNames[i]));
+            inputPopup.add(inputArray[i]);
+        }
 
         final var result = JOptionPane.showConfirmDialog(this, inputPopup, "Daten einfügen",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION)
-            return Optional.of(
-                    CustomerEntry.of(customerNmInput, houseNmInput, apartmentNmInput, consumptionInput, "Wasser", counterNmInput, dateInput, counterSwitchInput, commentInput)
-            );
+            return Optional.of(CustomerEntry.of(inputArray));
         else
             return Optional.empty();
     }
@@ -362,15 +217,11 @@ public class Counter extends JFrame {
         final var houseNumInput = new JTextField();
         final var apartmentNumInput = new JTextField();
 
-        //final var datePanel = new JPanel();
-        //datePanel.setLayout(new BoxLayout(datePanel, BoxLayout.X_AXIS));
         final var datePanel = new JPanel();
         datePanel.setLayout(new FlowLayout());
         datePanel.add(dateStartInput);
         datePanel.add(new JLabel(" - "));
         datePanel.add(dateEndInput);
-
-        //exportPopup.add(new JLabel("Filter fürs Exportieren")); // .setFont(new Font("", Font.BOLD, 15))
 
         labelPanel.add(new JLabel("Datum: "));
         labelPanel.add(new JLabel("Kundennummer: "));
@@ -391,7 +242,8 @@ public class Counter extends JFrame {
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION)
-            exportData(Filter.from(dateStartInput.getDate(), dateEndInput.getDate(), customerNumInput, houseNumInput, apartmentNumInput, "Wasser"));
+            exportData(Filter.of(dateStartInput.getDate(), dateEndInput.getDate(),
+                    customerNumInput, houseNumInput, apartmentNumInput, "Wasser"));
     }
 
     private void load() {
@@ -431,7 +283,6 @@ public class Counter extends JFrame {
         }
     }
 
-
     private void exportData(Filter filter) {
         try {
             final var writer = new PrintWriter(exportedDataPath);
@@ -466,7 +317,6 @@ public class Counter extends JFrame {
                 (boolean) table.getValueAt(index, 7),
                 (String) table.getValueAt(index, 8)
         );
-
     }
 
     private void exit() {

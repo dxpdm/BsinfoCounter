@@ -1,6 +1,6 @@
 [
   {
-    "customerNm": 1234,
+    "customerNm": 1,
     "houseNm": 1234,
     "apartmentNm": 1234,
     "counterState": 1234,
@@ -31,5 +31,49 @@
     "date": "20.10.2022",
     "counterSwitch": false,
     "comment": "Hsrsn"
+  },
+  {
+    "customerNm": 5,
+    "houseNm": 2,
+    "apartmentNm": 3,
+    "counterState": 4,
+    "counterType": "Wasser",
+    "counterNum": 5,
+    "date": "24.10.2022",
+    "counterSwitch": false,
+    "comment": "Test"
+  },
+  {
+    "customerNm": 1,
+    "houseNm": 2,
+    "apartmentNm": 3,
+    "counterState": 10,
+    "counterType": "Wasser",
+    "counterNum": 5,
+    "date": "12.08.2000",
+    "counterSwitch": true,
+    "comment": "Se"
+  },
+  {
+    "customerNm": 1,
+    "houseNm": 2,
+    "apartmentNm": 3,
+    "counterState": 4,
+    "counterType": "Wasser",
+    "counterNum": 5,
+    "date": "24.10.2022",
+    "counterSwitch": false,
+    "comment": "Test"
+  },
+  {
+    "customerNm": 1,
+    "houseNm": 2,
+    "apartmentNm": 3,
+    "counterState": 4,
+    "counterType": "Wasser",
+    "counterNum": 5,
+    "date": "24.10.2022",
+    "counterSwitch": false,
+    "comment": "UUUUU Y"
   }
 ]
